@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Word Hoard in Numbers</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: one column of "panels", each one chart and one sentence; big numbers first, then the line, the words, the grid. */
+:root{
+  --bg:#f5f6f9; --panel:#ffffff; --ink:#14161c; --ink-2:#4b4f5c; --ink-3:#7c8090; --rule:#e3e5ec; --grid:#eceef3;
+  --text-word:#2a78d6; --awl-word:#eb6834; --accent:#2a78d6;
+  --h1:#cde2fb; --h2:#86b6ef; --h3:#3987e5; --h4:#1c5cab; --h-ink-lo:#14161c; --h-ink-hi:#ffffff; --h-empty:#f1f2f6;
+  --tip-bg:#14161c; --tip-ink:#f5f6f9; --back:#eef4fd; --back-rule:#c9dcf6;
+  --f-display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --f-body:Inter, -apple-system, "Segoe UI", sans-serif;
+  --f-data:"JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;
+  --bg:#111318; --panel:#1a1d24; --ink:#eef0f4; --ink-2:#b4b8c4; --ink-3:#868a97; --rule:#2c303a; --grid:#262a33;
+  --text-word:#3987e5; --awl-word:#d95926; --accent:#5598e7;
+  --h1:#184f95; --h2:#256abf; --h3:#3987e5; --h4:#86b6ef; --h-ink-lo:#eef0f4; --h-ink-hi:#0d1420; --h-empty:#20242c;
+  --tip-bg:#eef0f4; --tip-ink:#111318; --back:#172133; --back-rule:#2a3d5c;}}
+:root[data-theme="dark"]{color-scheme:dark;
+  --bg:#111318; --panel:#1a1d24; --ink:#eef0f4; --ink-2:#b4b8c4; --ink-3:#868a97; --rule:#2c303a; --grid:#262a33;
+  --text-word:#3987e5; --awl-word:#d95926; --accent:#5598e7;
+  --h1:#184f95; --h2:#256abf; --h3:#3987e5; --h4:#86b6ef; --h-ink-lo:#eef0f4; --h-ink-hi:#0d1420; --h-empty:#20242c;
+  --tip-bg:#eef0f4; --tip-ink:#111318; --back:#172133; --back-rule:#2a3d5c;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15.5px/1.55 var(--f-body)}
+.wrap{max-width:920px;margin:0 auto;padding-block:36px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:22px}
+header{display:flex;flex-direction:column;gap:6px;margin-bottom:6px}
+.eyebrow{font:500 12px/1 var(--f-data);letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+h1{font:800 clamp(34px,6vw,54px)/1.02 var(--f-display);letter-spacing:-.02em;margin:0;text-wrap:balance}
+.lede{color:var(--ink-2);max-width:62ch;margin:4px 0 0}
+h2{font:600 22px/1.2 var(--f-display);margin:0;text-wrap:balance}
+.panel{background:var(--panel);border:1px solid var(--rule);border-radius:14px;padding:22px 22px 20px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.say{color:var(--ink-2);margin:0;max-width:66ch}
+.small{font-size:13px;color:var(--ink-3);margin:0}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media(max-width:700px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stat{background:var(--panel);border:1px solid var(--rule);border-radius:14px;padding:16px 16px 14px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.stat b{font:800 34px/1 var(--f-display);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.stat b.word{font-size:26px;line-height:1.15;overflow-wrap:anywhere}
+.stat span{font-size:13px;color:var(--ink-2);line-height:1.35}
+.chart{width:100%;height:auto;display:block;overflow:visible}
+.chart text{font-family:var(--f-data);font-size:11px;fill:var(--ink-3)}
+.chart .lab{font-family:var(--f-body);font-size:12.5px;font-weight:600;fill:var(--ink)}
+.chart .gridl{stroke:var(--grid);stroke-width:1}
+.chart .base{stroke:var(--ink-3);stroke-width:1}
+.chart .ln{stroke:var(--accent);stroke-width:2;fill:none;stroke-linejoin:round}
+.chart .area{fill:var(--accent);opacity:.09}
+.chart .pt{fill:var(--accent);stroke:var(--panel);stroke-width:2}
+.chart .hit{fill:transparent;cursor:pointer}
+.chart .cross{stroke:var(--ink-3);stroke-width:1;stroke-dasharray:3 3}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--ink-2)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.bars{display:flex;flex-direction:column;gap:7px;margin:4px 0 0;padding:0;list-style:none}
+.bars li{display:grid;grid-template-columns:34px minmax(92px,128px) 1fr;align-items:center;gap:10px;cursor:default}
+.bars .rk{font:500 12px var(--f-data);color:var(--ink-3);text-align:right}
+.bars .w{font-weight:600;overflow-wrap:anywhere}
+.track{display:flex;align-items:center;gap:8px;min-width:0}
+.bar{height:16px;border-radius:0 4px 4px 0;min-width:4px}
+.bars .n{font:500 13px var(--f-data);color:var(--ink);font-variant-numeric:tabular-nums}
+.bars li:hover .w,.bars li:focus .w{color:var(--accent)}
+.bars li:focus{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
+.split{display:flex;height:38px;border-radius:8px;overflow:hidden;gap:2px;background:var(--panel)}
+.split div{display:flex;align-items:center;padding:0 12px;font:600 14px var(--f-data);color:#fff;white-space:nowrap}
+.splitkey{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:560px){.splitkey{grid-template-columns:1fr}}
+.splitkey p{margin:0;font-size:14px;color:var(--ink-2)}
+.splitkey strong{color:var(--ink)}
+.hm{overflow-x:auto}
+.hm table{border-collapse:separate;border-spacing:3px;font-variant-numeric:tabular-nums;min-width:560px}
+.hm th{font:500 11px var(--f-data);color:var(--ink-3);padding:2px 0;text-align:center}
+.hm th.rowh{font:600 13.5px var(--f-body);color:var(--ink);text-align:right;padding-right:8px;white-space:nowrap}
+.hm td{width:38px;height:30px;border-radius:5px;text-align:center;font:500 12.5px var(--f-data);background:var(--h-empty)}
+.hm td.c1{background:var(--h1);color:var(--h-ink-lo)}
+.hm td.c2{background:var(--h2);color:var(--h-ink-lo)}
+.hm td.c3{background:var(--h3);color:var(--h-ink-hi)}
+.hm td.c4{background:var(--h4);color:var(--h-ink-hi)}
+.hm td.tot{background:none;font-weight:600;color:var(--ink)}
+.ramp{display:flex;align-items:center;gap:4px;font-size:12.5px;color:var(--ink-2)}
+.ramp i{width:22px;height:14px;border-radius:3px;display:inline-block}
+.facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media(max-width:620px){.facts{grid-template-columns:1fr}}
+.fact{background:var(--panel);border:1px solid var(--rule);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.fact .k{font:500 11.5px var(--f-data);letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.fact p{margin:0;font-size:14.5px;color:var(--ink-2)}
+.fact strong{color:var(--ink)}
+.tip{border-left:3px solid var(--awl-word);padding:4px 0 4px 12px;font-size:14.5px;color:var(--ink-2)}
+.tip strong{color:var(--ink)}
+details{font-size:14px}
+summary{cursor:pointer;color:var(--accent);font-weight:600;width:max-content}
+summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+.tw{overflow-x:auto;margin-top:10px}
+.tw table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+.tw th,.tw td{padding:6px 10px;border-bottom:1px solid var(--grid);text-align:right}
+.tw th:first-child,.tw td:first-child{text-align:left}
+.tw th{font:500 11px var(--f-data);text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3)}
+#tip{position:fixed;z-index:20;pointer-events:none;background:var(--tip-bg);color:var(--tip-ink);font:500 13px/1.4 var(--f-body);padding:8px 11px;border-radius:8px;max-width:240px;box-shadow:0 4px 18px rgba(0,0,0,.18)}
+#tip b{font-family:var(--f-display);font-size:15px}
+footer{font-size:13px;color:var(--ink-3);margin-top:6px}
+.deckbar{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+.btn{appearance:none;font:600 14px var(--f-body);color:var(--accent);background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:7px 14px;cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.score{font:500 13px var(--f-data);color:var(--ink-3)}
+.deck{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.card{appearance:none;border:0;padding:0;background:none;font:inherit;color:inherit;text-align:left;cursor:pointer;perspective:1000px;display:grid;min-width:0}
+.card:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:12px}
+.inner{display:grid;transition:transform .45s ease;transform-style:preserve-3d}
+.card[aria-pressed="true"] .inner{transform:rotateY(180deg)}
+.face{grid-area:1/1;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px;min-height:190px}
+.front{background:var(--panel);border:1px solid var(--rule);justify-content:space-between}
+.front .hw{font:800 26px/1.1 var(--f-display);letter-spacing:-.01em;overflow-wrap:anywhere}
+.front .pos{font:500 12px var(--f-data);color:var(--ink-3)}
+.front .meta{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:var(--ink-2)}
+.chip{display:inline-flex;align-items:center;gap:6px}
+.chip i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.front .hint{font-size:12px;color:var(--ink-3)}
+.back{background:var(--back);border:1px solid var(--back-rule);transform:rotateY(180deg);font-size:14px;color:var(--ink-2)}
+.back .hw{font:600 16px var(--f-display);color:var(--ink)}
+.back .def{color:var(--ink);font-weight:500}
+.back .no{font:500 12.5px var(--f-data);color:var(--accent)}
+.back .ex{font-style:italic}
+.back .et{font-size:12.5px;color:var(--ink-3);border-top:1px solid var(--back-rule);padding-top:7px}
+.back .sense{display:flex;flex-direction:column;gap:3px}
+.back .sense+.sense{border-top:1px dashed var(--back-rule);padding-top:7px}
+.back .lbl{font:500 11px var(--f-data);text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3)}
+@media (prefers-reduced-motion:reduce){.inner{transition:none}}
+.private{display:inline-flex;align-items:center;gap:6px;font:500 12px var(--f-data);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);background:var(--h-empty);border-radius:999px;padding:4px 10px;width:max-content}
+.mstats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media(max-width:700px){.mstats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.mstat{border:1px solid var(--rule);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.mstat b{font:800 24px/1.1 var(--f-display);font-variant-numeric:tabular-nums}
+.mstat span{font-size:12.5px;color:var(--ink-2)}
+.chart .mine-ln{stroke:var(--awl-word);stroke-width:2;fill:none;stroke-linejoin:round}
+.chart .mine-pt{fill:var(--awl-word);stroke:var(--panel);stroke-width:2}
+.chart .empty{font-family:var(--f-body);font-size:14px;fill:var(--ink-3)}
+.mt{border-collapse:collapse;width:100%;min-width:420px}
+.mt th{font:500 11px var(--f-data);text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);text-align:left;padding:6px 8px;border-bottom:1px solid var(--rule)}
+.mt td{padding:5px 8px;border-bottom:1px solid var(--grid);vertical-align:middle}
+.mt td.wk{font:500 13px var(--f-data);color:var(--ink-2);white-space:nowrap}
+.mt td.of{font:500 13px var(--f-data);color:var(--ink-3);white-space:nowrap}
+.mt td.ten{font:500 13px var(--f-data);text-align:right;font-variant-numeric:tabular-nums}
+.mt input{font:500 15px var(--f-body);color:var(--ink);background:var(--bg);border:1px solid var(--rule);border-radius:7px;padding:6px 8px;width:100%;min-width:0}
+.mt input[type=number]{width:76px;font-family:var(--f-data);font-variant-numeric:tabular-nums}
+.mt input:focus-visible{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}
+.mt input[aria-invalid=true]{border-color:var(--warn,#c0392b);outline-color:#c0392b}
+.mrow{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between}
+@media (prefers-reduced-motion:no-preference){.bar{transition:filter .15s}.bars li:hover .bar{filter:brightness(1.1)}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">ENG2 · Word Hoard · weeks 35–46</div>
+  <h1>Word Hoard in Numbers</h1>
+  <p class="lede">Every Word Hoard quiz ends with a post-it: your score, and the one word you found hardest. This page adds them all up. The post-its are unsigned, so there are no names here, just the class.</p>
+</header>
+
+<section class="stats" aria-label="Headline numbers" id="stats"></section>
+
+<section class="panel" aria-labelledby="h-avg">
+  <h2 id="h-avg">The class average, quiz by quiz</h2>
+  <p class="say" id="avg-say"></p>
+  <svg class="chart" id="avg" viewBox="0 0 720 300" role="img"></svg>
+  <p class="small">Every quiz is marked out of 10, even the 5-word quiz in week 35 and the 15-word one in week 40. No quiz in week 38. Hover or tap a point to see how many people sat it: when fewer people sit a quiz, its average can swing more.</p>
+  <details><summary>Show the numbers</summary><div class="tw"><table id="avg-table"></table></div></details>
+</section>
+
+<section class="panel" aria-labelledby="h-top">
+  <h2 id="h-top">The top ten hardest words (three tied for tenth)</h2>
+  <p class="say">How many times each word has been named as the hardest on a post-it, across all eleven quizzes. Hover or tap a word to see which weeks it was named.</p>
+  <div class="legend"><span><i style="background:var(--text-word)"></i>Text word, taken from what we read</span><span><i style="background:var(--awl-word)"></i>Academic Word List</span></div>
+  <ol class="bars" id="bars"></ol>
+</section>
+
+<section class="panel" aria-labelledby="h-cards">
+  <h2 id="h-cards">Test yourself on the hardest words</h2>
+  <p class="say">Say the meaning out loud first, then tap the card to check. Keep the ones you knew face-up and go round again.</p>
+  <div class="deckbar">
+    <button class="btn" type="button" id="shuffle">Shuffle</button>
+    <button class="btn" type="button" id="reset">Turn all face-down</button>
+    <span class="score" id="flipped" aria-live="polite"></span>
+  </div>
+  <div class="deck" id="deck"></div>
+</section>
+
+<section class="panel" aria-labelledby="h-split">
+  <h2 id="h-split">Which half of the set is harder?</h2>
+  <p class="say">Each set has two halves: words from the Academic Word List, and words taken from the texts we read. Here is every word ever named, split by half.</p>
+  <div class="split" id="split" role="img"></div>
+  <div class="splitkey" id="splitkey"></div>
+</section>
+
+<section class="panel" aria-labelledby="h-grid">
+  <h2 id="h-grid">Comeback words</h2>
+  <p class="say">Named words go back into the next quiz. This grid shows which words keep coming back as the hardest, week after week. Darker means more people named it.</p>
+  <div class="ramp" aria-hidden="true"><span>named by</span><i style="background:var(--h1)"></i>1<i style="background:var(--h2)"></i>2<i style="background:var(--h3)"></i>3<i style="background:var(--h4)"></i>4</div>
+  <div class="hm"><table id="hm"></table></div>
+</section>
+
+<section aria-label="Things the numbers show" class="facts" id="facts"></section>
+
+<section class="panel" aria-labelledby="h-week">
+  <h2 id="h-week">This week</h2>
+  <p class="say" id="week-say"></p>
+  <div class="tip"><strong>Affect or effect?</strong> <em>Affect</em> is the verb: the frame affects what you believe. <em>Effect</em> is the noun: the frame has an effect on what you believe.</div>
+</section>
+
+<section class="panel" aria-labelledby="h-mine">
+  <span class="private">Only on this device</span>
+  <h2 id="h-mine">My scores</h2>
+  <p class="say">Type in the score from each of your post-its, and the word you found hardest, to see your own line. Everything you type stays in this browser on this device. Nobody else can see it, including your teacher, and nothing is sent anywhere.</p>
+  <p class="small" id="mine-store"></p>
+  <div class="mstats" id="mine-stats"></div>
+  <svg class="chart" id="mine-chart" viewBox="0 0 720 240" role="img" aria-label="Your own scores, out of 10, week by week"></svg>
+  <p class="small" id="mine-words"></p>
+  <div class="tw"><table class="mt" id="mine-table"></table></div>
+  <div class="mrow">
+    <p class="small">Week 35 was out of 5 and week 40 out of 15. Type the score as it was marked; the page turns it into a mark out of 10.</p>
+    <button class="btn" type="button" id="mine-clear">Clear my scores</button>
+  </div>
+</section>
+
+<footer>Updated 16 November 2026 with the week 46 quiz. Counts are of words named on post-its, so a word named often is a word many people found hard, not a word many people got wrong.</footer>
+</div>
+<div id="tip" hidden></div>
+
+<script>
+/* ---- DATA. To add a week: add one line to QUIZZES, and any new word to WORDS. ---- */
+const WORDS={ /* T = text word (harvested), A = Academic Word List */
+  affect:"A",agency:"T",analyze:"A",authority:"A",conceit:"T",concept:"A",concession:"A",constitute:"A",derive:"A",
+  elide:"T",extraction:"T",hermeneutic:"T",imperial:"T",invective:"T",occur:"A",pathologize:"T",persona:"T",
+  polemic:"T",policy:"A",quatrain:"T",reciprocity:"T",reticence:"T",significant:"A",subjugation:"T",vary:"A",vindication:"T"};
+const QUIZZES=[
+  {week:35,avg:6.5, sat:9, len:5, named:{concession:2,authority:2,analyze:2}},
+  {week:36,avg:5.5, sat:12,len:10,named:{conceit:2,concession:1,authority:1,constitute:1,concept:1,quatrain:1}},
+  {week:37,avg:6.86,sat:7, len:10,named:{hermeneutic:3,reciprocity:2,conceit:2,concession:1,constitute:1,derive:1}},
+  {week:39,avg:7.1, sat:8, len:10,named:{reciprocity:2,invective:1,concession:1,conceit:1,hermeneutic:1,derive:1}},
+  {week:40,avg:5.55,sat:11,len:15,named:{invective:2,reciprocity:2,concession:1,persona:1}},
+  {week:41,avg:4.65,sat:10,len:10,named:{polemic:4,invective:2,subjugation:2,vindication:1,constitute:1}},
+  {week:42,avg:5.0, sat:14,len:10,named:{invective:4,vindication:4,polemic:3,subjugation:2,occur:1}},
+  {week:43,avg:4.4, sat:11,len:10,named:{polemic:3,subjugation:3,vindication:1,agency:1,policy:1,reticence:1}},
+  {week:44,avg:6.05,sat:10,len:10,named:{pathologize:4,invective:2,significant:2,polemic:1,vindication:1}},
+  {week:45,avg:5.82,sat:11,len:10,named:{pathologize:3,polemic:2,invective:1,imperial:1,vary:1,concession:1,extraction:1}},
+  {week:46,avg:5.85,sat:10,len:10,named:{extraction:2,pathologize:2,affect:2,elide:2,concession:1,polemic:1}}];
+const NEW_THIS_WEEK=["affect","elide"];
+/* Flip-card text, from "Word Hoard — sets 1-16 (autumn).xlsx". One entry per sense taught so far.
+   The deck shows every word in the top ten (ties included); a word missing here gets no card. */
+const CARDS={
+  polemic:{pos:"noun",senses:[{no:"polemikk / stridsskrift",def:"a speech or piece of writing expressing a strongly critical attack on or controversial opinion about someone or something",ex:"A polemic does not pretend to be balanced."}]},
+  invective:{pos:"noun",senses:[{no:"hard kritikk / skjellsord",def:"insulting, abusive, or highly critical language",ex:"There is no invective in it — that is what makes it frightening."}]},
+  pathologize:{pos:"verb",senses:[{no:"sykeliggjøre",def:"treat something ordinary as an illness",ex:"The rest cure pathologises boredom."}],et:"Greek pathos, ‘suffering’. Same root: sympathy, pathetic, empathy."},
+  concession:{pos:"noun",senses:[
+    {lbl:"Set 1",no:"innrømmelse",def:"admitting part of the other side’s case",ex:"Raleigh’s first word is a concession."},
+    {lbl:"Set 10",no:"konsesjon",def:"a right granted to operate a territory",ex:"An oil concession is a licence to extract."}]},
+  subjugation:{pos:"noun",senses:[{no:"underkuelse",def:"forcing under someone’s control",ex:"Subjugation is the word Wollstonecraft chooses."}],et:"Latin sub + jugum, ‘under the yoke’. Literal before it was figurative."},
+  vindication:{pos:"noun",senses:[{no:"forsvar / rettferdiggjøring",def:"a defense proving something right",ex:"Wollstonecraft’s title claims a right, not a favour."}]},
+  reciprocity:{pos:"noun",senses:[{no:"gjensidighet",def:"mutual exchange; giving back"}]},
+  conceit:{pos:"noun",senses:[{no:"utvida metafor",def:"an extended metaphor",ex:"Donne’s conceit compares mankind to a continent."}]},
+  hermeneutic:{pos:"adjective",senses:[{no:"hermeneutisk",def:"to do with interpretation of texts",ex:"Gadamer’s argument is hermeneutic, not historical."}]},
+  authority:{pos:"noun",senses:[{no:"autoritet / myndighet",def:"the power or right to be obeyed or believed",ex:"Raleigh knew exactly what it cost to answer authority."}],et:"Latin auctoritas, from auctor, ‘originator’. Same root as author: an author has authority over the text."},
+  constitute:{pos:"verb",senses:[{no:"utgjøre",def:"be (a part) of a whole; combine to form",ex:"Three quatrains and a couplet constitute a sonnet."}],et:"Latin con + statuere, ‘set up’. Same family: institute, substitute, statute, statue."},
+  extraction:{pos:"noun",senses:[{no:"utvinning",def:"taking resources out of a place",ex:"Extraction is what both novels are about."}],et:"Latin ex + trahere, ‘to pull out’. Same family: tractor, abstract, contract, subtract."}};
+
+/* ---- helpers ---- */
+const $=id=>document.getElementById(id);
+const sum=a=>a.reduce((x,y)=>x+y,0);
+const total=w=>sum(QUIZZES.map(q=>q.named[w]||0));
+const weeksOf=w=>QUIZZES.filter(q=>q.named[w]).map(q=>q.week);
+const allWords=Object.keys(WORDS).filter(w=>total(w)>0).sort((a,b)=>total(b)-total(a)||weeksOf(a)[0]-weeksOf(b)[0]||a.localeCompare(b));
+const fmt=v=>(Math.round(v*100)/100).toString();
+const latest=QUIZZES[QUIZZES.length-1];
+const best=QUIZZES.reduce((a,b)=>b.avg>a.avg?b:a);
+const grand=sum(allWords.map(total));
+const typeName=t=>t==="T"?"Text word":"Academic Word List";
+
+/* ---- tooltip ---- */
+const tip=$("tip");
+function showTip(html,x,y){tip.innerHTML=html;tip.hidden=false;
+  const r=tip.getBoundingClientRect();let L=x+14,T=y+14;
+  if(L+r.width>innerWidth-8)L=x-r.width-14; if(T+r.height>innerHeight-8)T=y-r.height-14;
+  tip.style.left=Math.max(8,L)+"px";tip.style.top=Math.max(8,T)+"px";}
+const hideTip=()=>{tip.hidden=true};
+function bindTip(el,html){
+  el.addEventListener("pointerenter",e=>showTip(html(),e.clientX,e.clientY));
+  el.addEventListener("pointermove",e=>showTip(html(),e.clientX,e.clientY));
+  el.addEventListener("pointerleave",hideTip);
+  el.addEventListener("focus",()=>{const r=el.getBoundingClientRect();showTip(html(),r.left+r.width/2,r.top+r.height/2)});
+  el.addEventListener("blur",hideTip);}
+addEventListener("scroll",hideTip,{passive:true});
+
+/* ---- headline numbers ---- */
+$("stats").innerHTML=[
+  [QUIZZES.length,"quizzes so far"],
+  [grand,"hardest words named on post-its"],
+  [allWords[0],`named most often: ${total(allWords[0])} times`,true],
+  [fmt(best.avg),`best class average, week ${best.week}`]
+].map(([b,s,w])=>`<div class="stat"><b class="${w?"word":""}">${b}</b><span>${s}</span></div>`).join("");
+
+/* ---- class average line ---- */
+(function(){
+  const svg=$("avg"),W=720,H=300,L=40,R=24,T=24,B=40;
+  const w0=QUIZZES[0].week,w1=latest.week;
+  const x=w=>L+(w-w0)/(w1-w0)*(W-L-R), y=v=>T+(10-v)/10*(H-T-B);
+  let s="";
+  for(let v=0;v<=10;v+=2) s+=`<line class="gridl" x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L-8}" y="${y(v)+4}" text-anchor="end">${v}</text>`;
+  s+=`<line class="base" x1="${L}" x2="${W-R}" y1="${y(0)}" y2="${y(0)}"/>`;
+  QUIZZES.forEach(q=>s+=`<text x="${x(q.week)}" y="${H-B+18}" text-anchor="middle">w${q.week}</text>`);
+  const pts=QUIZZES.map(q=>`${x(q.week)},${y(q.avg)}`).join(" ");
+  s+=`<polygon class="area" points="${x(w0)},${y(0)} ${pts} ${x(w1)},${y(0)}"/>`;
+  s+=`<polyline class="ln" points="${pts}"/>`;
+  s+=`<line class="cross" id="cross" x1="0" x2="0" y1="${T}" y2="${y(0)}" visibility="hidden"/>`;
+  QUIZZES.forEach(q=>s+=`<circle class="pt" cx="${x(q.week)}" cy="${y(q.avg)}" r="${q===latest||q===best?6:4.5}"/>`);
+  s+=`<text class="lab" x="${x(best.week)}" y="${y(best.avg)-13}" text-anchor="middle">best · ${fmt(best.avg)}</text>`;
+  s+=`<text class="lab" x="${x(latest.week)}" y="${y(latest.avg)-13}" text-anchor="end">now · ${fmt(latest.avg)}</text>`;
+  const step=(W-L-R)/(w1-w0);
+  QUIZZES.forEach((q,i)=>s+=`<rect class="hit" data-i="${i}" tabindex="0" x="${x(q.week)-step/2}" y="${T}" width="${step}" height="${y(0)-T}"><title>Week ${q.week}: ${fmt(q.avg)}</title></rect>`);
+  svg.innerHTML=s;
+  svg.setAttribute("aria-label",`Class average out of 10 for each quiz from week ${w0} to week ${w1}. Best ${fmt(best.avg)} in week ${best.week}; latest ${fmt(latest.avg)} in week ${latest.week}.`);
+  const cross=$("cross");
+  svg.querySelectorAll(".hit").forEach(r=>{
+    const q=QUIZZES[+r.dataset.i];
+    r.querySelector("title").remove();
+    bindTip(r,()=>{cross.setAttribute("x1",x(q.week));cross.setAttribute("x2",x(q.week));cross.setAttribute("visibility","visible");
+      return `<b>Week ${q.week} · ${fmt(q.avg)}</b><br>${q.sat} of 14 sat it · ${q.len}-word quiz`;});
+    r.addEventListener("pointerleave",()=>cross.setAttribute("visibility","hidden"));
+    r.addEventListener("blur",()=>cross.setAttribute("visibility","hidden"));
+  });
+  const prev=QUIZZES[QUIZZES.length-2];
+  const diff=latest.avg-prev.avg;
+  $("avg-say").textContent=`Week ${latest.week} came in at ${fmt(latest.avg)} out of 10, ${Math.abs(diff)<0.1?"level with":diff>0?"up from":"down from"} ${fmt(prev.avg)} the week before. The best quiz so far was week ${best.week}, at ${fmt(best.avg)}.`;
+  $("avg-table").innerHTML=`<thead><tr><th>Week</th><th>Average /10</th><th>Sat it</th><th>Words in quiz</th></tr></thead><tbody>`+
+    QUIZZES.map(q=>`<tr><td>${q.week}</td><td>${q.avg.toFixed(2)}</td><td>${q.sat}</td><td>${q.len}</td></tr>`).join("")+"</tbody>";
+})();
+
+/* ---- top ten (ties at the cut-off are all shown, with the same rank) ---- */
+(function(){
+  const cutoff=total(allWords[9]);
+  const top=allWords.filter(w=>total(w)>=cutoff);
+  const max=total(top[0]);
+  $("bars").innerHTML=top.map(w=>{
+    const n=total(w),rank=1+allWords.filter(v=>total(v)>n).length;
+    const tied=allWords.filter(v=>total(v)===n).length>1;
+    return `<li tabindex="0" data-w="${w}"><span class="rk">${tied?rank+"=":rank}</span><span class="w">${w}</span><span class="track"><span class="bar" style="width:calc((100% - 34px) * ${n/max});background:var(${WORDS[w]==="T"?"--text-word":"--awl-word"})"></span><span class="n">${n}</span></span></li>`;
+  }).join("");
+  $("bars").querySelectorAll("li").forEach(li=>{const w=li.dataset.w;
+    bindTip(li,()=>`<b>${w}</b> · named ${total(w)} times<br>${typeName(WORDS[w])}<br>Weeks: ${weeksOf(w).join(", ")}`);});
+})();
+
+/* ---- flip-cards ---- */
+(function(){
+  const cutoff=total(allWords[9]);
+  let order=allWords.filter(w=>total(w)>=cutoff&&CARDS[w]);
+  const deck=$("deck");
+  function render(){
+    deck.innerHTML=order.map(w=>{const c=CARDS[w],t=WORDS[w];
+      const senses=c.senses.map(s=>`<div class="sense">${s.lbl?`<span class="lbl">${s.lbl}</span>`:""}<span class="def">${s.def}</span><span class="no">${s.no}</span>${s.ex?`<span class="ex">${s.ex}</span>`:""}</div>`).join("");
+      return `<button type="button" class="card" aria-pressed="false" data-w="${w}" aria-label="${w}, flip to see the meaning">
+        <span class="inner">
+          <span class="face front"><span><span class="hw">${w}</span><br><span class="pos">${c.pos}</span></span>
+            <span class="hint">Say the meaning, then tap</span>
+            <span class="meta"><span class="chip"><i style="background:var(${t==="T"?"--text-word":"--awl-word"})"></i>${t==="T"?"Text word":"Academic word"}</span><span>named ${total(w)}×</span></span></span>
+          <span class="face back" aria-hidden="true"><span class="hw">${w}</span>${senses}${c.et?`<span class="et">${c.et}</span>`:""}</span>
+        </span></button>`;}).join("");
+    deck.querySelectorAll(".card").forEach(b=>b.addEventListener("click",()=>{
+      const on=b.getAttribute("aria-pressed")!=="true";
+      b.setAttribute("aria-pressed",String(on));
+      b.querySelector(".back").setAttribute("aria-hidden",String(!on));
+      b.querySelector(".front").setAttribute("aria-hidden",String(on));
+      count();}));
+    count();
+  }
+  function count(){const n=deck.querySelectorAll('.card[aria-pressed="true"]').length;
+    $("flipped").textContent=`${n} of ${order.length} face-up`;}
+  $("shuffle").addEventListener("click",()=>{
+    for(let i=order.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[order[i],order[j]]=[order[j],order[i]];}
+    render();});
+  $("reset").addEventListener("click",render);
+  render();
+})();
+
+/* ---- text words vs academic words ---- */
+(function(){
+  const t=sum(allWords.filter(w=>WORDS[w]==="T").map(total)), a=grand-t;
+  const tw=allWords.filter(w=>WORDS[w]==="T").length, aw=allWords.length-tw;
+  const pct=v=>Math.round(v/grand*100);
+  $("split").innerHTML=`<div style="flex:${t};background:var(--text-word)">${t}</div><div style="flex:${a};background:var(--awl-word)">${a}</div>`;
+  $("split").setAttribute("aria-label",`${t} of ${grand} named words were text words and ${a} were Academic Word List words.`);
+  $("splitkey").innerHTML=`<p><strong>Text words: ${t} of ${grand} (${pct(t)}%).</strong> ${tw} different words, like <em>polemic</em>, <em>invective</em> and <em>pathologize</em>.</p>
+    <p><strong>Academic words: ${a} of ${grand} (${pct(a)}%).</strong> ${aw} different words, like <em>concession</em>, <em>authority</em> and <em>constitute</em>.</p>`;
+})();
+
+/* ---- comeback grid ---- */
+(function(){
+  const cutoff=total(allWords[9]);
+  const rows=allWords.filter(w=>total(w)>=cutoff);
+  let h=`<thead><tr><th></th>${QUIZZES.map(q=>`<th scope="col">w${q.week}</th>`).join("")}<th scope="col">all</th></tr></thead><tbody>`;
+  rows.forEach(w=>{
+    h+=`<tr><th class="rowh" scope="row">${w}</th>`+QUIZZES.map(q=>{const n=q.named[w]||0;
+      return `<td class="${n?"c"+Math.min(n,4):""}" data-w="${w}" data-k="${q.week}" data-n="${n}" ${n?'tabindex="0"':""}>${n||""}</td>`;}).join("")+`<td class="tot">${total(w)}</td></tr>`;
+  });
+  $("hm").innerHTML=h+"</tbody>";
+  $("hm").querySelectorAll("td[data-n]").forEach(td=>{if(+td.dataset.n)
+    bindTip(td,()=>`<b>${td.dataset.w}</b><br>Week ${td.dataset.k}: named by ${td.dataset.n}`);});
+})();
+
+/* ---- things the numbers show ---- */
+(function(){
+  const streak=w=>{let s=0;for(let i=QUIZZES.length-1;i>=0&&QUIZZES[i].named[w];i--)s++;return s;};
+  const longest=allWords.reduce((a,b)=>streak(b)>streak(a)?b:a);
+  const fastest=allWords.filter(w=>weeksOf(w)[0]>=44).sort((a,b)=>total(b)-total(a))[0];
+  const qsSince=QUIZZES.filter(q=>q.week>=weeksOf(fastest)[0]).length;
+  const items=[
+    ["Longest streak",`<strong>${longest}</strong> has been named as the hardest word in each of the last <strong>${streak(longest)}</strong> quizzes. It has not had a week off since week ${weeksOf(longest)[0]}.`],
+    ["Fastest climber",`<strong>${fastest}</strong> arrived in week ${weeksOf(fastest)[0]} and has been named <strong>${total(fastest)}</strong> times in ${qsSince} quizzes. It is already number ${1+allWords.filter(v=>total(v)>total(fastest)).length} on the list.`],
+    ["Different words named",`<strong>${allWords.length}</strong> different words have been named so far. The top two, <em>${allWords[0]}</em> and <em>${allWords[1]}</em>, make up <strong>${Math.round((total(allWords[0])+total(allWords[1]))/grand*100)}%</strong> of all the post-its.`],
+    ["A perfect score still counts",`Even a 10 out of 10 comes with a word on the post-it. So this page counts the word that felt <em>hardest</em>, not the words people got wrong.`]
+  ];
+  $("facts").innerHTML=items.map(([k,p])=>`<div class="fact"><span class="k">${k}</span><p>${p}</p></div>`).join("");
+})();
+
+/* ---- my scores: saved in this browser only (localStorage), never sent anywhere ---- */
+(function(){
+  const KEY="eng2-word-hoard-my-scores";
+  let saved=true, mine={};
+  try{mine=JSON.parse(localStorage.getItem(KEY)||"{}")||{};}catch(e){saved=false;mine={};}
+  function store(){try{localStorage.setItem(KEY,JSON.stringify(mine));saved=true;}catch(e){saved=false;}
+    $("mine-store").textContent=saved?"":"This browser is not saving here (a private window, perhaps), so your scores will disappear when you close the page.";}
+  const ten=q=>mine[q.week]&&mine[q.week].s!==""&&mine[q.week].s!=null?mine[q.week].s/q.len*10:null;
+
+  $("mine-table").innerHTML=`<thead><tr><th>Week</th><th>My score</th><th></th><th>Out of 10</th><th>Hardest word for me</th></tr></thead><tbody>`+
+    QUIZZES.map(q=>`<tr><td class="wk">w${q.week}</td>
+      <td><input type="number" id="s${q.week}" inputmode="decimal" min="0" max="${q.len}" step="0.5" aria-label="My score in week ${q.week}, out of ${q.len}"></td>
+      <td class="of">/ ${q.len}</td><td class="ten" id="t${q.week}"></td>
+      <td><input type="text" id="w${q.week}" autocomplete="off" spellcheck="false" aria-label="Hardest word for me in week ${q.week}"></td></tr>`).join("")+"</tbody>";
+
+  QUIZZES.forEach(q=>{
+    const s=$("s"+q.week), w=$("w"+q.week), m=mine[q.week]||{};
+    if(m.s!=null&&m.s!=="")s.value=m.s; if(m.w)w.value=m.w;
+    s.addEventListener("input",()=>{
+      const v=s.value.trim(), n=Number(v.replace(",","."));
+      const bad=v!==""&&(isNaN(n)||n<0||n>q.len);
+      s.setAttribute("aria-invalid",String(bad));
+      if(bad)return;
+      mine[q.week]=Object.assign(mine[q.week]||{},{s:v===""?null:n});
+      store();draw();});
+    w.addEventListener("input",()=>{mine[q.week]=Object.assign(mine[q.week]||{},{w:w.value.trim()});store();draw();});
+  });
+
+  const clear=$("mine-clear");let armed=false,timer;
+  clear.addEventListener("click",()=>{
+    if(!armed){armed=true;clear.textContent="Tap again to clear everything";timer=setTimeout(()=>{armed=false;clear.textContent="Clear my scores";},4000);return;}
+    clearTimeout(timer);armed=false;clear.textContent="Clear my scores";
+    mine={};store();QUIZZES.forEach(q=>{$("s"+q.week).value="";$("w"+q.week).value="";$("s"+q.week).setAttribute("aria-invalid","false");});draw();});
+
+  function draw(){
+    const pts=QUIZZES.map(q=>({q,v:ten(q)})).filter(p=>p.v!=null);
+    QUIZZES.forEach(q=>{const v=ten(q);$("t"+q.week).textContent=v==null?"":fmt(v);});
+    // stats
+    const st=[];
+    if(pts.length){
+      const best=pts.reduce((a,b)=>b.v>a.v?b:a), last=pts[pts.length-1], prev=pts[pts.length-2];
+      st.push([`${pts.length} of ${QUIZZES.length}`,"quizzes entered"]);
+      st.push([fmt(best.v),`my best, week ${best.q.week}`]);
+      st.push([fmt(last.v),prev?`my latest: ${last.v>prev.v?"up":last.v<prev.v?"down":"level"}${last.v!==prev.v?" "+fmt(Math.abs(last.v-prev.v)):""} on week ${prev.q.week}`:`my latest, week ${last.q.week}`]);
+      st.push([fmt(sum(pts.map(p=>p.v))/pts.length),"my average"]);
+    }else{
+      st.push(["0 of "+QUIZZES.length,"quizzes entered"],["–","my best"],["–","my latest"],["–","my average"]);
+    }
+    $("mine-stats").innerHTML=st.map(([b,s])=>`<div class="mstat"><b>${b}</b><span>${s}</span></div>`).join("");
+    // words
+    const wc={};QUIZZES.forEach(q=>{const w=(mine[q.week]||{}).w;if(w){const k=w.toLowerCase();wc[k]=(wc[k]||0)+1;}});
+    const wl=Object.keys(wc).sort((a,b)=>wc[b]-wc[a]||a.localeCompare(b));
+    $("mine-words").innerHTML=wl.length?"My hardest words: "+wl.map(w=>`<strong>${w.replace(/[<&>"]/g,"")}</strong>${wc[w]>1?" ×"+wc[w]:""}`).join(" · "):"";
+    // chart
+    const svg=$("mine-chart"),W=720,H=240,L=40,R=24,T=22,B=34;
+    const w0=QUIZZES[0].week,w1=latest.week;
+    const x=w=>L+(w-w0)/(w1-w0)*(W-L-R), y=v=>T+(10-v)/10*(H-T-B);
+    let s="";
+    for(let v=0;v<=10;v+=2) s+=`<line class="gridl" x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L-8}" y="${y(v)+4}" text-anchor="end">${v}</text>`;
+    s+=`<line class="base" x1="${L}" x2="${W-R}" y1="${y(0)}" y2="${y(0)}"/>`;
+    QUIZZES.forEach(q=>s+=`<text x="${x(q.week)}" y="${H-B+18}" text-anchor="middle">w${q.week}</text>`);
+    if(!pts.length){
+      s+=`<text class="empty" x="${(L+W-R)/2}" y="${y(5)}" text-anchor="middle">Your line appears here when you type in your first score.</text>`;
+    }else{
+      if(pts.length>1)s+=`<polyline class="mine-ln" points="${pts.map(p=>x(p.q.week)+","+y(p.v)).join(" ")}"/>`;
+      pts.forEach(p=>s+=`<circle class="mine-pt" cx="${x(p.q.week)}" cy="${y(p.v)}" r="5"><title>Week ${p.q.week}: ${fmt(p.v)} out of 10</title></circle>`);
+      const best=pts.reduce((a,b)=>b.v>a.v?b:a), last=pts[pts.length-1];
+      const lab=(p,t,anchor)=>`<text class="lab" x="${x(p.q.week)}" y="${p.v>8.6?y(p.v)+20:y(p.v)-12}" text-anchor="${anchor}">${t}</text>`;
+      if(best!==last)s+=lab(best,"best · "+fmt(best.v),"middle");
+      s+=lab(last,(best===last&&pts.length>1?"best and latest · ":"latest · ")+fmt(last.v),last.q.week>w1-2?"end":"middle");
+    }
+    svg.innerHTML=s;
+  }
+  store();draw();
+})();
+
+/* ---- this week ---- */
+(function(){
+  const ws=Object.keys(latest.named).sort((a,b)=>latest.named[b]-latest.named[a]||total(b)-total(a));
+  const top=latest.named[ws[0]], lead=ws.filter(w=>latest.named[w]===top);
+  const list=a=>a.length<2?a[0]:a.slice(0,-1).join(", ")+" and "+a[a.length-1];
+  $("week-say").innerHTML=`In week ${latest.week}, ${latest.sat} of you sat the quiz and the class averaged <strong>${fmt(latest.avg)}</strong>. The words named most were <em>${list(lead)}</em>, ${top===1?"once":top===2?"twice":top+" times"} each. ${NEW_THIS_WEEK.length?`Two of them are brand new this set: <em>${list(NEW_THIS_WEEK)}</em>.`:""}`;
+})();
+</script>
+</html>
