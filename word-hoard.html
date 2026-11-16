@@ -82,8 +82,8 @@ h2{font:600 22px/1.2 var(--f-display);margin:0;text-wrap:balance}
 .hm td.tot{background:none;font-weight:600;color:var(--ink)}
 .ramp{display:flex;align-items:center;gap:4px;font-size:12.5px;color:var(--ink-2)}
 .ramp i{width:22px;height:14px;border-radius:3px;display:inline-block}
-.facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-@media(max-width:620px){.facts{grid-template-columns:1fr}}
+.facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media(max-width:760px){.facts{grid-template-columns:1fr}}
 .fact{background:var(--panel);border:1px solid var(--rule);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:6px;min-width:0}
 .fact .k{font:500 11.5px var(--f-data);letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
 .fact p{margin:0;font-size:14.5px;color:var(--ink-2)}
@@ -165,12 +165,11 @@ footer{font-size:13px;color:var(--ink-3);margin-top:6px}
   <h2 id="h-avg">The class average, quiz by quiz</h2>
   <p class="say" id="avg-say"></p>
   <svg class="chart" id="avg" viewBox="0 0 720 300" role="img"></svg>
-  <p class="small">Every quiz is marked out of 10, even the 5-word quiz in week 35 and the 15-word one in week 40. No quiz in week 38. Hover or tap a point to see how many people sat it: when fewer people sit a quiz, its average can swing more.</p>
   <details><summary>Show the numbers</summary><div class="tw"><table id="avg-table"></table></div></details>
 </section>
 
 <section class="panel" aria-labelledby="h-top">
-  <h2 id="h-top">The top ten hardest words (three tied for tenth)</h2>
+  <h2 id="h-top">The top ten hardest words</h2>
   <p class="say">How many times each word has been named as the hardest on a post-it, across all eleven quizzes. Hover or tap a word to see which weeks it was named.</p>
   <div class="legend"><span><i style="background:var(--text-word)"></i>Text word, taken from what we read</span><span><i style="background:var(--awl-word)"></i>Academic Word List</span></div>
   <ol class="bars" id="bars"></ol>
@@ -416,8 +415,7 @@ $("stats").innerHTML=[
   const items=[
     ["Longest streak",`<strong>${longest}</strong> has been named as the hardest word in each of the last <strong>${streak(longest)}</strong> quizzes. It has not had a week off since week ${weeksOf(longest)[0]}.`],
     ["Fastest climber",`<strong>${fastest}</strong> arrived in week ${weeksOf(fastest)[0]} and has been named <strong>${total(fastest)}</strong> times in ${qsSince} quizzes. It is already number ${1+allWords.filter(v=>total(v)>total(fastest)).length} on the list.`],
-    ["Different words named",`<strong>${allWords.length}</strong> different words have been named so far. The top two, <em>${allWords[0]}</em> and <em>${allWords[1]}</em>, make up <strong>${Math.round((total(allWords[0])+total(allWords[1]))/grand*100)}%</strong> of all the post-its.`],
-    ["A perfect score still counts",`Even a 10 out of 10 comes with a word on the post-it. So this page counts the word that felt <em>hardest</em>, not the words people got wrong.`]
+    ["Different words named",`<strong>${allWords.length}</strong> different words have been named so far. The top two, <em>${allWords[0]}</em> and <em>${allWords[1]}</em>, make up <strong>${Math.round((total(allWords[0])+total(allWords[1]))/grand*100)}%</strong> of all the post-its.`]
   ];
   $("facts").innerHTML=items.map(([k,p])=>`<div class="fact"><span class="k">${k}</span><p>${p}</p></div>`).join("");
 })();
