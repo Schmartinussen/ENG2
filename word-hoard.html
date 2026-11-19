@@ -154,7 +154,7 @@ footer{font-size:13px;color:var(--ink-3);margin-top:6px}
 
 <div class="wrap">
 <header>
-  <div class="eyebrow">ENG2 · Word Hoard · weeks 35–46</div>
+  <div class="eyebrow">ENG2 · Word Hoard · weeks 35–47</div>
   <h1>Word Hoard in Numbers</h1>
   <p class="lede">Every Word Hoard quiz ends with a post-it: your score, and the one word you found hardest.</p>
 </header>
@@ -205,7 +205,7 @@ footer{font-size:13px;color:var(--ink-3);margin-top:6px}
 <section class="panel" aria-labelledby="h-week">
   <h2 id="h-week">This week</h2>
   <p class="say" id="week-say"></p>
-  <div class="tip"><strong>Affect or effect?</strong> <em>Affect</em> is the verb: the frame affects what you believe. <em>Effect</em> is the noun: the frame has an effect on what you believe.</div>
+  <div class="tip"><strong>Complicity and complex are family.</strong> Both come from Latin <em>com + plicare</em>, ‘folded together’. Same root: <em>imply</em>, <em>explicit</em>, <em>duplicate</em>.</div>
 </section>
 
 <section class="panel" aria-labelledby="h-mine">
@@ -223,14 +223,14 @@ footer{font-size:13px;color:var(--ink-3);margin-top:6px}
   </div>
 </section>
 
-<footer>Updated 16 November 2026 with the week 46 quiz. Counts are of words named on post-its, so a word named often is a word many people found hard, not a word many people got wrong.</footer>
+<footer>Updated 19 November 2026 with the week 47 quiz. Counts are of words named on post-its, so a word named often is a word many people found hard, not a word many people got wrong.</footer>
 </div>
 <div id="tip" hidden></div>
 
 <script>
 /* ---- DATA. To add a week: add one line to QUIZZES, and any new word to WORDS. ---- */
 const WORDS={ /* T = text word (harvested), A = Academic Word List */
-  affect:"A",agency:"T",analyze:"A",authority:"A",conceit:"T",concept:"A",concession:"A",constitute:"A",derive:"A",
+  affect:"A",agency:"T",community:"A",complicity:"T",dehumanize:"T",rebuttal:"T",analyze:"A",authority:"A",conceit:"T",concept:"A",concession:"A",constitute:"A",derive:"A",
   elide:"T",extraction:"T",hermeneutic:"T",imperial:"T",invective:"T",occur:"A",pathologize:"T",persona:"T",
   polemic:"T",policy:"A",quatrain:"T",reciprocity:"T",reticence:"T",significant:"A",subjugation:"T",vary:"A",vindication:"T"};
 const QUIZZES=[
@@ -244,8 +244,9 @@ const QUIZZES=[
   {week:43,avg:4.4, sat:11,len:10,named:{polemic:3,subjugation:3,vindication:1,agency:1,policy:1,reticence:1}},
   {week:44,avg:6.05,sat:10,len:10,named:{pathologize:4,invective:2,significant:2,polemic:1,vindication:1}},
   {week:45,avg:5.82,sat:11,len:10,named:{pathologize:3,polemic:2,invective:1,imperial:1,vary:1,concession:1,extraction:1}},
-  {week:46,avg:5.85,sat:10,len:10,named:{extraction:2,pathologize:2,affect:2,elide:2,concession:1,polemic:1}}];
-const NEW_THIS_WEEK=["affect","elide"];
+  {week:46,avg:5.85,sat:10,len:10,named:{extraction:2,pathologize:2,affect:2,elide:2,concession:1,polemic:1}},
+  {week:47,avg:6.56,sat:9, len:10,named:{elide:3,pathologize:2,complicity:1,dehumanize:1,community:1,rebuttal:1}}];
+const NEW_THIS_WEEK=["complicity","dehumanize","community","rebuttal"];   /* words from this week's new set that were named */
 /* Flip-card text, from "Word Hoard — sets 1-16 (autumn).xlsx". One entry per sense taught so far.
    The deck shows every word in the top ten (ties included); a word missing here gets no card. */
 const CARDS={
@@ -262,6 +263,7 @@ const CARDS={
   hermeneutic:{pos:"adjective",senses:[{no:"hermeneutisk",def:"to do with interpretation of texts",ex:"Gadamer’s argument is hermeneutic, not historical."}]},
   authority:{pos:"noun",senses:[{no:"autoritet / myndighet",def:"the power or right to be obeyed or believed",ex:"Raleigh knew exactly what it cost to answer authority."}],et:"Latin auctoritas, from auctor, ‘originator’. Same root as author: an author has authority over the text."},
   constitute:{pos:"verb",senses:[{no:"utgjøre",def:"be (a part) of a whole; combine to form",ex:"Three quatrains and a couplet constitute a sonnet."}],et:"Latin con + statuere, ‘set up’. Same family: institute, substitute, statute, statue."},
+  elide:{pos:"verb",senses:[{no:"utelate / stryke",def:"leave out; pass over",ex:"What does the sentence elide?"}]},
   extraction:{pos:"noun",senses:[{no:"utvinning",def:"taking resources out of a place",ex:"Extraction is what both novels are about."}],et:"Latin ex + trahere, ‘to pull out’. Same family: tractor, abstract, contract, subtract."}};
 
 /* ---- helpers ---- */
@@ -410,7 +412,7 @@ $("stats").innerHTML=[
 (function(){
   const streak=w=>{let s=0;for(let i=QUIZZES.length-1;i>=0&&QUIZZES[i].named[w];i--)s++;return s;};
   const longest=allWords.reduce((a,b)=>streak(b)>streak(a)?b:a);
-  const fastest=allWords.filter(w=>weeksOf(w)[0]>=44).sort((a,b)=>total(b)-total(a))[0];
+  const fastest=allWords.filter(w=>weeksOf(w)[0]>=44&&w!==longest).sort((a,b)=>total(b)-total(a))[0];
   const qsSince=QUIZZES.filter(q=>q.week>=weeksOf(fastest)[0]).length;
   const items=[
     ["Longest streak",`<strong>${longest}</strong> has been named as the hardest word in each of the last <strong>${streak(longest)}</strong> quizzes. It has not had a week off since week ${weeksOf(longest)[0]}.`],
@@ -501,7 +503,12 @@ $("stats").innerHTML=[
   const ws=Object.keys(latest.named).sort((a,b)=>latest.named[b]-latest.named[a]||total(b)-total(a));
   const top=latest.named[ws[0]], lead=ws.filter(w=>latest.named[w]===top);
   const list=a=>a.length<2?a[0]:a.slice(0,-1).join(", ")+" and "+a[a.length-1];
-  $("week-say").innerHTML=`In week ${latest.week}, ${latest.sat} of you sat the quiz and the class averaged <strong>${fmt(latest.avg)}</strong>. The words named most were <em>${list(lead)}</em>, ${top===1?"once":top===2?"twice":top+" times"} each. ${NEW_THIS_WEEK.length?`Two of them are brand new this set: <em>${list(NEW_THIS_WEEK)}</em>.`:""}`;
+  const nums=["no","one","two","three","four","five","six"];
+  const times=n=>n===1?"once":n===2?"twice":n+" times";
+  const leadTxt=lead.length===1?`The word named most was <em>${lead[0]}</em>, ${times(top)}.`:`The words named most were <em>${list(lead)}</em>, ${times(top)} each.`;
+  const nw=NEW_THIS_WEEK.length;
+  const newTxt=nw?` ${nums[nw]?nums[nw][0].toUpperCase()+nums[nw].slice(1):nw} ${nw===1?"word":"words"} from the new set ${nw===1?"was":"were"} named for the first time: <em>${list(NEW_THIS_WEEK)}</em>.`:"";
+  $("week-say").innerHTML=`In week ${latest.week}, ${latest.sat} of you sat the quiz and the class averaged <strong>${fmt(latest.avg)}</strong>. ${leadTxt}${newTxt}`;
 })();
 </script>
 </html>
