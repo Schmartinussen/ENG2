@@ -154,7 +154,7 @@ footer{font-size:13px;color:var(--ink-3);margin-top:6px}
 
 <div class="wrap">
 <header>
-  <div class="eyebrow">ENG2 · Word Hoard · weeks 35–47</div>
+  <div class="eyebrow" id="eyebrow">ENG2 · Word Hoard</div>
   <h1>Word Hoard in Numbers</h1>
   <p class="lede">Every Word Hoard quiz ends with a post-it: your score, and the one word you found hardest.</p>
 </header>
@@ -170,7 +170,7 @@ footer{font-size:13px;color:var(--ink-3);margin-top:6px}
 
 <section class="panel" aria-labelledby="h-top">
   <h2 id="h-top">The top ten hardest words</h2>
-  <p class="say">How many times each word has been named as the hardest on a post-it, across all eleven quizzes. Hover or tap a word to see which weeks it was named.</p>
+  <p class="say">How many times each word has been named as the hardest on a post-it, across all <span id="qcount"></span> quizzes. Hover or tap a word to see which weeks it was named.</p>
   <div class="legend"><span><i style="background:var(--text-word)"></i>Text word, taken from what we read</span><span><i style="background:var(--awl-word)"></i>Academic Word List</span></div>
   <ol class="bars" id="bars"></ol>
 </section>
@@ -205,7 +205,7 @@ footer{font-size:13px;color:var(--ink-3);margin-top:6px}
 <section class="panel" aria-labelledby="h-week">
   <h2 id="h-week">This week</h2>
   <p class="say" id="week-say"></p>
-  <div class="tip"><strong>Complicity and complex are family.</strong> Both come from Latin <em>com + plicare</em>, ‘folded together’. Same root: <em>imply</em>, <em>explicit</em>, <em>duplicate</em>.</div>
+  <div class="tip"><strong>Testimony starts with a witness.</strong> Latin <em>testis</em> means ‘witness’. Same root: <em>testify</em>, <em>protest</em>, <em>contest</em>, <em>testament</em>.</div>
 </section>
 
 <section class="panel" aria-labelledby="h-mine">
@@ -223,7 +223,7 @@ footer{font-size:13px;color:var(--ink-3);margin-top:6px}
   </div>
 </section>
 
-<footer>Updated 19 November 2026 with the week 47 quiz. Counts are of words named on post-its, so a word named often is a word many people found hard, not a word many people got wrong.</footer>
+<footer>Updated 26 November 2026 with the week 48 quiz. Counts are of words named on post-its, so a word named often is a word many people found hard, not a word many people got wrong.</footer>
 </div>
 <div id="tip" hidden></div>
 
@@ -232,7 +232,8 @@ footer{font-size:13px;color:var(--ink-3);margin-top:6px}
 const WORDS={ /* T = text word (harvested), A = Academic Word List */
   affect:"A",agency:"T",community:"A",complicity:"T",dehumanize:"T",rebuttal:"T",analyze:"A",authority:"A",conceit:"T",concept:"A",concession:"A",constitute:"A",derive:"A",
   elide:"T",extraction:"T",hermeneutic:"T",imperial:"T",invective:"T",occur:"A",pathologize:"T",persona:"T",
-  polemic:"T",policy:"A",quatrain:"T",reciprocity:"T",reticence:"T",significant:"A",subjugation:"T",vary:"A",vindication:"T"};
+  polemic:"T",policy:"A",quatrain:"T",reciprocity:"T",reticence:"T",significant:"A",subjugation:"T",vary:"A",vindication:"T",
+  compute:"A",testimony:"T",commodity:"T"};
 const QUIZZES=[
   {week:35,avg:6.5, sat:9, len:5, named:{concession:2,authority:2,analyze:2}},
   {week:36,avg:5.5, sat:12,len:10,named:{conceit:2,concession:1,authority:1,constitute:1,concept:1,quatrain:1}},
@@ -245,8 +246,9 @@ const QUIZZES=[
   {week:44,avg:6.05,sat:10,len:10,named:{pathologize:4,invective:2,significant:2,polemic:1,vindication:1}},
   {week:45,avg:5.82,sat:11,len:10,named:{pathologize:3,polemic:2,invective:1,imperial:1,vary:1,concession:1,extraction:1}},
   {week:46,avg:5.85,sat:10,len:10,named:{extraction:2,pathologize:2,affect:2,elide:2,concession:1,polemic:1}},
-  {week:47,avg:6.56,sat:9, len:10,named:{elide:3,pathologize:2,complicity:1,dehumanize:1,community:1,rebuttal:1}}];
-const NEW_THIS_WEEK=["complicity","dehumanize","community","rebuttal"];   /* words from this week's new set that were named */
+  {week:47,avg:6.56,sat:9, len:10,named:{elide:3,pathologize:2,complicity:1,dehumanize:1,community:1,rebuttal:1}},
+  {week:48,avg:5.6, sat:10,len:10,named:{elide:3,pathologize:3,compute:2,testimony:1,commodity:1}}];
+const NEW_THIS_WEEK=["compute","testimony","commodity"];   /* words from this week's new set that were named */
 /* Flip-card text, from "Word Hoard — sets 1-16 (autumn).xlsx". One entry per sense taught so far.
    The deck shows every word in the top ten (ties included); a word missing here gets no card. */
 const CARDS={
@@ -294,10 +296,14 @@ function bindTip(el,html){
 addEventListener("scroll",hideTip,{passive:true});
 
 /* ---- headline numbers ---- */
+const topWords=allWords.filter(w=>total(w)===total(allWords[0]));
+const numWord=n=>["zero","one","two","three","four","five","six","seven","eight","nine","ten","eleven","twelve","thirteen","fourteen","fifteen","sixteen","seventeen","eighteen","nineteen","twenty"][n]||String(n);
+$("eyebrow").textContent=`ENG2 · Word Hoard · weeks ${QUIZZES[0].week}–${latest.week}`;
+$("qcount").textContent=numWord(QUIZZES.length);
 $("stats").innerHTML=[
   [QUIZZES.length,"quizzes so far"],
   [grand,"hardest words named on post-its"],
-  [allWords[0],`named most often: ${total(allWords[0])} times`,true],
+  [topWords.join(" · "),`named most often: ${total(allWords[0])} times${topWords.length>1?" each":""}`,true],
   [fmt(best.avg),`best class average, week ${best.week}`]
 ].map(([b,s,w])=>`<div class="stat"><b class="${w?"word":""}">${b}</b><span>${s}</span></div>`).join("");
 
@@ -326,7 +332,7 @@ $("stats").innerHTML=[
     const q=QUIZZES[+r.dataset.i];
     r.querySelector("title").remove();
     bindTip(r,()=>{cross.setAttribute("x1",x(q.week));cross.setAttribute("x2",x(q.week));cross.setAttribute("visibility","visible");
-      return `<b>Week ${q.week} · ${fmt(q.avg)}</b><br>${q.sat} of 14 sat it · ${q.len}-word quiz`;});
+      return `<b>Week ${q.week} · ${fmt(q.avg)}</b><br>${q.sat} of ${q.week>=48?13:14} sat it · ${q.len}-word quiz`;});
     r.addEventListener("pointerleave",()=>cross.setAttribute("visibility","hidden"));
     r.addEventListener("blur",()=>cross.setAttribute("visibility","hidden"));
   });
